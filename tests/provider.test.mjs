@@ -103,6 +103,38 @@ test('watch disabled does not share catalogs across new session scopes', async (
   assert.ok(f.calls() > calls)
 })
 
+for (const watch of [false, true]) for (const operation of ['listDir', 'readText']) {
+  test(`a root ${operation} failure preserves other roots and retries with watch=${watch}`, async () => {
+    const f = await fixture({ watch })
+    await f.fiber.dispose()
+    const preferred = join(f.root, 'preferred')
+    await put(preferred, 'alpha', 'Preferred')
+    await f.ctx.plugin(Plugin, {
+      includeDefaultRoots: false, customSkillDirs: [preferred, f.skills], watch,
+      watchStabilityThresholdMs: 20, watchPollIntervalMs: 10,
+    })
+    const original = f.ctx.fs[operation].bind(f.ctx.fs)
+    let failing = true, attempts = 0
+    f.ctx.fs[operation] = async (...args) => {
+      if (args[0].displayPath.startsWith(preferred)) {
+        attempts += 1
+        if (failing) throw Object.assign(new Error('fixture root denied'), { code: 'EACCES' })
+      }
+      return await original(...args)
+    }
+    for (let i = 0; i < 2; i++) {
+      const snapshot = await f.ctx.skills.snapshot({ cwd: f.root, scope: {} })
+      assert.equal(snapshot.complete, false)
+      assert.deepEqual(snapshot.skills.map(s => [s.name, s.description]), [['alpha', 'Alpha']])
+    }
+    assert.equal(attempts, 2, 'failed roots must not enter the shared cache')
+    failing = false
+    const restored = await f.ctx.skills.snapshot({ cwd: f.root, scope: {} })
+    assert.equal(restored.complete, true)
+    assert.deepEqual(restored.skills.map(s => [s.name, s.description]), [['alpha', 'Preferred']])
+  })
+}
+
 test('different working directories sharing roots reuse their catalogs', async () => {
   const f = await fixture({ catalogCacheMaxEntries: 1 })
   await f.ctx.skills.snapshot({ cwd: join(f.root, 'one'), scope: {} })

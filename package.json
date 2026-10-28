@@ -1,6 +1,6 @@
 {
   "name": "dsh-skill-catalog-cache",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared watched skill catalogs and bounded discovery for DeepSeek Harness",
   "type": "module",
   "main": "lib/index.js",
