@@ -1,0 +1,18 @@
+# DSH skill catalog cache
+
+替换官方 filesystem 技能提供方，通过公开 `ctx.skills.registerProvider` 注册；不修改宿主文件。插件保留技能来源优先级、调用权限、符号链接、目录变更监听和每次正文加载时重新读取的行为。
+
+相同技能根目录的完整快照在会话和项目之间共享，并发请求合并一次扫描。新增、删除、修改、监听错误、项目监听淘汰以及文件系统服务替换会通过 Cordis 依赖生命周期重建缓存。不完整扫描不缓存；关闭监听或文件系统不提供相同宿主路径映射时，也关闭共享缓存。远端或内存文件系统保留逐会话发现行为。各调用者的取消由技能注册表独立处理，不取消其他调用者共享的发现工作。
+
+| 配置 | 默认值 | 用途 |
+| --- | --- | --- |
+| `catalogCacheMaxEntries` | `128` | 最多保留的技能根目录快照数量，使用 LRU 淘汰 |
+| `discoveryConcurrency` | `8` | 每个根目录并发读取的技能文件数量 |
+
+其余配置与官方 filesystem 提供方保持一致，使用当前机器默认 DSH/Agents 目录或显式配置的路径；包内没有机器专用路径。原官方行的自定义配置应迁移到 `skill-catalog-cache` 行。只启用一个名为 `filesystem` 的提供方。
+
+安装包通过 `dsh.bundle` 禁用 `skill-filesystem` 行并启用本插件。卸载时由受管 bundle 重组恢复官方行。跨机交付使用环境同步的插件清单、递增版本与已推送的完整 Git SHA，不复制运行目录文件。
+
+构建：设置开发环境的 `DSH_SOURCE_ROOT` 后执行 `npm run build`。测试执行 `npm test`。
+
+本插件的文件发现和监听实现基于 MIT 许可的 DeepSeek Harness `packages/skill/skill-filesystem/src/index.ts`，保留上游许可。维护差异包括有界并发、监听资源过滤、提供方级目录缓存与生命周期失效。上游实现变化时需要重新核对这些行为及回归测试。

@@ -1,0 +1,5 @@
+- id: skill-filesystem
+  disabled: true
+- insert:
+    - id: skill-catalog-cache
+      name: dsh-skill-catalog-cache
