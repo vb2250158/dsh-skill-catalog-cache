@@ -9,9 +9,9 @@
 | `catalogCacheMaxEntries` | `128` | 最多保留的技能根目录快照数量，使用 LRU 淘汰 |
 | `discoveryConcurrency` | `8` | 每个根目录并发读取的技能文件数量 |
 
-其余配置与官方 filesystem 提供方保持一致，使用当前机器默认 DSH/Agents 目录或显式配置的路径；包内没有机器专用路径。原官方行的自定义配置应迁移到 `skill-catalog-cache` 行。只启用一个名为 `filesystem` 的提供方。
+其余配置与官方 filesystem 提供方保持一致，使用当前机器默认 DSH/Agents 目录或显式配置的路径；包内没有机器专用路径。每个预设只启用一个名为 `filesystem` 的提供方。自定义预设需要把其技能提供方改为本包；预设自定义配置需保留。
 
-安装包通过 `dsh.bundle` 禁用 `skill-filesystem` 行并启用本插件。卸载时由受管 bundle 重组恢复官方行。跨机交付使用环境同步的插件清单、递增版本与已推送的完整 Git SHA，不复制运行目录文件。
+安装包通过 `dsh.bundle` 禁用宿主 `skill-filesystem` 行，并替换 standard、ptc、cordis 三个 Web 预设内的扫描器。minimal 继续不提供本地技能。预设配置基于 DSH 0.2.1-rc.3，保留其他插件配置；升级宿主需运行预设对比测试。v0.1.0 只替换宿主行，遗漏预设扫描器，会导致实际聊天仍慢。卸载时由受管 bundle 重组恢复官方行。跨机交付使用环境同步的插件清单、递增版本与已推送的完整 Git SHA，不复制运行目录文件。
 
 构建：设置开发环境的 `DSH_SOURCE_ROOT` 后执行 `npm run build`。测试执行 `npm test`。
 

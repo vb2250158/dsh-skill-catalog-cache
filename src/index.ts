@@ -44,7 +44,7 @@ const DEFAULT_WATCH_MAX_PROJECTS = 128
 const DEFAULT_DISCOVERY_CONCURRENCY = 8
 
 export const name = 'skill-catalog-cache'
-export const inject = ['skills', 'fs']
+export const inject = ['skills']
 
 /** Local filesystem skill provider configuration. */
 export interface Config {
@@ -144,6 +144,12 @@ export function apply(ctx: Context, config: Config = {}): void {
     provider = new FileSystemSkillProvider(ctx, control, config)
     return provider
   })
+  ctx.inject(['fs'], (fsContext) => {
+    fsContext.effect(() => {
+      provider.invalidateCatalog()
+      return () => { provider.invalidateCatalog() }
+    }, 'skill catalog filesystem lifecycle')
+  })
   ctx.effect(function* () {
     yield async () => { await provider.dispose() }
   }, 'skill-filesystem watcher')
@@ -170,7 +176,7 @@ export class FileSystemSkillProvider implements SkillProvider {
 
   constructor(
     private readonly ctx: Context,
-    control: SkillProviderControl,
+    private readonly control: SkillProviderControl,
     config: Config = {},
   ) {
     this.lifecycleSignal = control.signal
@@ -280,6 +286,12 @@ export class FileSystemSkillProvider implements SkillProvider {
     this.catalogCache.clear()
     this.disposal ??= this.watchManager.dispose()
     return this.disposal
+  }
+
+  /** Discard summaries when the optional filesystem service changes. */
+  invalidateCatalog(): void {
+    this.catalogCache.clear()
+    this.control.invalidate()
   }
 
   private async roots(cwd: string | undefined): Promise<SkillRoot[]> {
